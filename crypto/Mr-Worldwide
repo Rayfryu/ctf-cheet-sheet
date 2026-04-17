@@ -1,0 +1,105 @@
+from geopy.geocoders import Nominatim
+import re
+import requests
+from pwn import log
+from itertools import product
+
+# Input string containing the encoded flag with geographic coordinates
+WORD = "picoCTF{(35.028309, 135.753082)(46.469391, 30.740883)(39.758949, -84.191605)(41.015137, 28.979530)(24.466667, 54.366669)(3.140853, 101.693207)_(9.005401, 38.763611)(-3.989038, -79.203560)(52.377956, 4.897070)(41.085651, -73.858467)(57.790001, -152.407227)(31.205753, 29.924526)}"
+
+# Helper function to check if a letter is lowercase
+def is_lowercase(letter):
+    return 'a' <= letter <= 'z'
+
+# Function to reconstruct the flag format based on the given letters
+def add_underscore(original_message, letters):
+    underscore_location = len(original_message.split("_")[0].split(",")) - 1
+    return letters[:underscore_location] + "_" + letters[underscore_location:]
+
+# Function to translate non-ASCII country names into English using Google Translate API
+def translate_to_english(word):
+    target_language = "en"
+    url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_language}&dt=t&q={word}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()[0][0][0]
+    return word  # Fallback to the original word if translation fails
+
+# Function to extract all initials from a word
+def get_all_initials(word):
+    words = word.split(" ")
+    return [w[0] for w in words if not is_lowercase(w[0])]
+
+# Function to parse the geographic coordinates from the encoded flag
+def parser(encoded_flag):
+    pattern = r"\((-?\d+\.\d+), (-?\d+\.\d+)\)"
+    return [(float(x), float(y)) for x, y in re.findall(pattern, encoded_flag)]
+
+# Function to resolve city and country initials based on coordinates
+def get_city_country_by_geo_coordinates(latitude, longitude):
+    geolocator = Nominatim(user_agent="geo_converter")
+    try:
+        location = geolocator.reverse((latitude, longitude), exactly_one=True)
+        if location and 'address' in location.raw:
+            address = location.raw['address']
+            # Handle cases where cities or states are specified in a compound form
+            city = address.get('city', address.get('town', address.get('state_district', ''))).split(" / ")[0]
+            country = address.get('country', '')
+
+            # Extract initials and handle ASCII and non-ASCII names
+            city_initials = get_all_initials(city) if city else ["?"]
+            country_initials = get_all_initials(country) if country else ["?"]
+
+            # Translate non-ASCII names if necessary
+            if not city.isascii():
+                city_initials = get_all_initials(translate_to_english(city))
+            if not country.isascii():
+                country_initials = get_all_initials(translate_to_english(country))
+
+            return city_initials, country_initials
+        else:
+            log.warning(f"Failed to resolve location for coordinates: ({latitude}, {longitude})")
+            return ["?"], ["?"]
+    except Exception as e:
+        log.warning(f"Error resolving location for coordinates ({latitude}, {longitude}): {e}")
+        return ["?"], ["?"]
+
+# Function to generate all possible combinations of letters
+def generate_all_possibilities(data):
+    combinations = product(*data)
+    result = [''.join(comb) for comb in combinations]
+    for i, word in enumerate(result):
+        log.info(f"Flag {i + 1}: picoCTF{{{add_underscore(WORD, word)}}}")
+    log.success(f"Generated {len(result)} combinations.")
+    return result
+
+# Function to create flags based on city and country initials
+def create_the_flags(list_of_tuples):
+    cities_initials_list = []
+    countries_initials_list = []
+
+    for city_initials, country_initials in list_of_tuples:
+        # Handle specific case for Turkish "İ"
+        cities_initials_list.append(["I"] if city_initials == ["İ"] else city_initials)
+        countries_initials_list.append(country_initials)
+
+    log.info("Generating all possible city initial combinations.")
+    generate_all_possibilities(cities_initials_list)
+
+    log.info("Generating all possible country initial combinations.")
+    generate_all_possibilities(countries_initials_list)
+
+# Main function to parse the flag and resolve initials
+def main():
+    log.info("Parsing geographic coordinates from the encoded flag.")
+    geo_coordinates = parser(WORD)
+
+    log.info("Resolving city and country initials for each coordinate.")
+    initials = [get_city_country_by_geo_coordinates(lat, lon) for lat, lon in geo_coordinates]
+
+    log.info("Constructing the final flags.")
+    create_the_flags(initials)
+
+# Entry point of the script
+if __name__ == "__main__":
+                                main()
