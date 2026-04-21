@@ -1,0 +1,14 @@
+def caesar_decrypt(cipher):
+    for shift in range(26):
+        result = ""
+        for c in cipher:
+            if c.isalpha():
+                base = ord('a') if c.islower() else ord('A')
+                result += chr((ord(c) - base - shift) % 26 + base)
+            else:
+                result += c
+        print(f"Shift {shift}: {result}")
+
+cipher = "khoor"
+              caesar_decrypt(cipher)
+
