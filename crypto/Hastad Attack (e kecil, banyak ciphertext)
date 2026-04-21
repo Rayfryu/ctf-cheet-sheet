@@ -1,0 +1,19 @@
+import gmpy2
+from functools import reduce
+
+def crt(n, a):
+    total = 0
+    prod = reduce(lambda a,b: a*b, n)
+    for n_i, a_i in zip(n, a):
+        p = prod // n_i
+        total += a_i * gmpy2.invert(p, n_i) * p
+    return total % prod
+
+n_list = [...]
+c_list = [...]
+e = 3
+
+x = crt(n_list, c_list)
+m = gmpy2.iroot(x, e)[0]
+
+print(bytes.fromhex(hex(m)[2:]))
