@@ -1,0 +1,13 @@
+from Crypto.Util.number import inverse, long_to_bytes
+
+p = 61
+q = 53
+n = p * q
+e = 17
+c = 2790
+
+phi = (p-1)*(q-1)
+d = inverse(e, phi)
+
+m = pow(c, d, n)
+print(long_to_bytes(m))
