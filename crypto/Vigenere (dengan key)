@@ -1,0 +1,14 @@
+def vigenere_decrypt(cipher, key):
+    result = ""
+    key = key.lower()
+    j = 0
+    for c in cipher:
+        if c.isalpha():
+            shift = ord(key[j % len(key)]) - ord('a')
+            result += chr((ord(c) - ord('a') - shift) % 26 + ord('a'))
+            j += 1
+        else:
+            result += c
+    return result
+
+print(vigenere_decrypt("lxfopvefrnhr", "lemon"))
