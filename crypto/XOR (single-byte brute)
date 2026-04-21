@@ -1,0 +1,8 @@
+def xor_bruteforce(cipher_hex):
+    cipher = bytes.fromhex(cipher_hex)
+    for key in range(256):
+        decoded = ''.join(chr(b ^ key) for b in cipher)
+        if all(32 <= ord(c) < 127 for c in decoded):
+            print(f"Key {key}: {decoded}")
+
+xor_bruteforce("68656c6c6f")
