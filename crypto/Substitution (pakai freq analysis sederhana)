@@ -1,0 +1,7 @@
+from collections import Counter
+
+def freq_analysis(text):
+    freq = Counter(text)
+    print(freq)
+
+freq_analysis("WKH TXLFN EURZQ IRA")
