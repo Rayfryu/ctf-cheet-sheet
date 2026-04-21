@@ -1,0 +1,77 @@
+# ================== CONFIG ==================
+MODE = "CBC"  # ECB / CBC / CTR
+
+CIPHERTEXT = "..."  # isi: hex ATAU base64
+IS_HEX = True       # True = hex, False = base64
+
+KEY = "YELLOW SUBMARINE"  # string biasa
+
+IV = "00000000000000000000000000000000"   # hex (CBC) atau None
+NONCE = "00000000000000000000000000000000"  # hex (CTR) atau None
+# ============================================
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+from Crypto.Util import Counter
+import base64
+
+def to_bytes(data, is_hex=True):
+    if data is None:
+        return None
+    if is_hex:
+        return bytes.fromhex(data)
+    else:
+        return base64.b64decode(data)
+
+def prepare_key(key):
+    key = key.encode()
+    if len(key) not in [16, 24, 32]:
+        raise ValueError("Key harus 16/24/32 bytes")
+    return key
+
+def decrypt():
+    key = prepare_key(KEY)
+    ciphertext = to_bytes(CIPHERTEXT, IS_HEX)
+
+    if MODE == "ECB":
+        cipher = AES.new(key, AES.MODE_ECB)
+        pt = cipher.decrypt(ciphertext)
+        try:
+            pt = unpad(pt, 16)
+        except:
+            pass
+
+    elif MODE == "CBC":
+        iv = to_bytes(IV, True)
+        cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+        pt = cipher.decrypt(ciphertext)
+        try:
+            pt = unpad(pt, 16)
+        except:
+            pass
+
+    elif MODE == "CTR":
+        nonce = to_bytes(NONCE, True)
+        ctr = Counter.new(128, initial_value=int.from_bytes(nonce, 'big'))
+        cipher = AES.new(key, AES.MODE_CTR, counter=ctr)
+        pt = cipher.decrypt(ciphertext)
+
+    else:
+        raise ValueError("Mode tidak valid")
+
+    return pt
+
+if __name__ == "__main__":
+    try:
+        result = decrypt()
+        print("=== HASIL ===")
+        print(result)
+        try:
+            print("\nDecoded:", result.decode())
+        except:
+            pass
+    except Exception as e:
+        print("Error:", e)
+
+
+//pip install pycryptodome
